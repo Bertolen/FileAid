@@ -1,4 +1,6 @@
-# sbteclipse plugin
-.target
-
-.idea
+/.idea/
+/target/
+/bin/
+/.settings/
+.classpath
+.project
