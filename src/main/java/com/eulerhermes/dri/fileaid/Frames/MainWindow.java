@@ -1,5 +1,6 @@
 package com.eulerhermes.dri.fileaid.Frames;
 
+import com.eulerhermes.dri.fileaid.DataParsing.DataParsing;
 import com.eulerhermes.dri.fileaid.Panels.FileSelectPanel;
 import com.eulerhermes.dri.fileaid.Panels.StructuredDataPanel;
 
@@ -30,6 +31,12 @@ public class MainWindow extends JFrame {
         this.getContentPane().add(filesSelectionPanel);
         this.getContentPane().add(dataPanel);
 
+        // Création du modèle
+        DataParsing dataParser = new DataParsing();
+        
+        // Branchement du contrôleur
+        filesSelectionPanel.setDataParser(dataParser);
+        
         // Affichage de la fenêtre
         this.setVisible(true);
     }
