@@ -15,5 +15,7 @@ public class StructuredDataPanel extends JPanel {
 		this.add(new JTable(table));
 		
 	}
+	
+	// TODO : ajouter une méthode pour receptionner les données et les afficher
 
 }

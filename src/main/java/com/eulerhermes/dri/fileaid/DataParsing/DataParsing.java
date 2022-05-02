@@ -80,7 +80,7 @@ public class DataParsing {
 					if(!variableGroupe) {
 						
 						DataInfo lineInfo = new DataInfo();
-						//
+						// TODO
 						copyInfo.add(lineInfo);
 					}
 				}
@@ -110,6 +110,9 @@ public class DataParsing {
 		ArrayList<DataInfo> copyInfo = parseCopy();
 		
 		// interpretation des données
+		// TODO
 		
+		// envoi des données au panneau de données pour affichage
+		// TODO
 	}
 }
