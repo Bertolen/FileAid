@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.List;
 
 import com.eulerhermes.dri.fileaid.Panels.StructuredDataPanel;
 import com.eulerhermes.dri.fileaid.model.DataInfo;
@@ -55,7 +56,7 @@ public class DataParsing {
 	 * @return liste de DataInfo où chaque element correspond à une donnée de la copy
 	 */
 	
-	private ArrayList<DataInfo> parseCopy() {
+	private List<DataInfo> parseCopy() {
 		
 		// Ouverture de la copy
 		BufferedReader copyReader;
@@ -67,7 +68,7 @@ public class DataParsing {
 		}
 		
 		// initialisation du tableau de retour
-		ArrayList<DataInfo> copyInfo = new ArrayList<DataInfo>();
+		List<DataInfo> copyInfo = new ArrayList<DataInfo>();
 		
 		try {
 
@@ -176,10 +177,10 @@ public class DataParsing {
 	public void parseData(){
 		
 		// interpretation de la copy
-		ArrayList<DataInfo> copyInfo = parseCopy();
+		List<DataInfo> copyInfo = parseCopy();
 		
 		// initialisation de la première ligne
-		ArrayList<ArrayList<String>> donneesInterpretees = new ArrayList<ArrayList<String>>(); // création du tableau
+		List<List<String>> donneesInterpretees = new ArrayList<List<String>>(); // création du tableau
 		donneesInterpretees.add(new ArrayList<String>()); // création de la ligne d'entête
 		for(DataInfo ci : copyInfo) {
 			donneesInterpretees.get(0).add(ci.getName());
