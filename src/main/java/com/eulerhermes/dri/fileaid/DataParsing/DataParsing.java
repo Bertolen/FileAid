@@ -10,6 +10,7 @@ import java.util.ArrayList;
 
 import com.eulerhermes.dri.fileaid.Panels.StructuredDataPanel;
 import com.eulerhermes.dri.fileaid.model.DataInfo;
+import com.eulerhermes.dri.fileaid.model.TypeEnum;
 
 public class DataParsing {
 
@@ -33,7 +34,7 @@ public class DataParsing {
 		this.copyFile = copyFile;
 		
 		// si on a les deux fichiers alors on les parse
-		if(this.dataPanel != null) parseData();
+		if(this.dataFile != null) parseData();
 	}
 	
 
@@ -48,7 +49,14 @@ public class DataParsing {
 		if(this.copyFile != null) parseData();
 	}
 	
+	/**
+	 * parcours la copy pour en déduire la position de chaque donnée
+	 * !!! ATTENTION !!!! Pour l'instant on considère uniquement les données définies sur une seule ligne et on ne traite pas les redefine
+	 * @return liste de DataInfo où chaque element correspond à une donnée de la copy
+	 */
+	
 	private ArrayList<DataInfo> parseCopy() {
+		
 		// Ouverture de la copy
 		BufferedReader copyReader;
 		try {
@@ -60,8 +68,12 @@ public class DataParsing {
 		
 		// initialisation du tableau de retour
 		ArrayList<DataInfo> copyInfo = new ArrayList<DataInfo>();
+		
 		try {
 
+			// position initiale
+			int position = 1;
+			
 			// Boucle sur chaque ligne
 			String copyLine;
 			copyLine = copyReader.readLine();
@@ -74,14 +86,24 @@ public class DataParsing {
 					copyLine = copyLine.substring(7).trim();
 					
 					// vérifie si on est dans une variable groupée ou pas
-					boolean variableGroupe = copyLine.toUpperCase().contains("PIC");
+					boolean variableGroupe = !copyLine.toUpperCase().contains("PIC");
 				
 					// si on n'est pas dans une variable groupée on ajoute son nom, sa taille et sa position
 					if(!variableGroupe) {
 						
+						// Découpe de la ligne en mots séparés par des espaces
+						String[] words = copyLine.split(" ");
+						
+						// alimentation du nouveau DataInfo
 						DataInfo lineInfo = new DataInfo();
-						// TODO
+						lineInfo.setName(words[1]); // ATENTION : pour l'instant on considère que le nom est toujours la deuxième valeur
+						lineInfo.setType(typeOf(words[3]));
+						lineInfo.setSize(computeSize(words[3], lineInfo.getType()));
+						lineInfo.setPosition(position);
 						copyInfo.add(lineInfo);
+						
+						// incrémentation de la position
+						position += lineInfo.getSize();
 					}
 				}
 				
@@ -102,17 +124,102 @@ public class DataParsing {
 	}
 	
 	/**
+	 * Determine le type d'une donnée à partir de sa déclaration
+	 * @param sizeText déclaration du type de donnée en cobol
+	 * @return le type de donnée dans un TypeEnum
+	 */
+	private TypeEnum typeOf(String sizeText) {
+		// detection du type alphanumerique
+		if(sizeText.contains("X")) return TypeEnum.ALPHANUM;
+		
+		// detection du type numerique décimal
+		if(sizeText.contains("V")) return TypeEnum.FLOAT;
+		
+		// par élimination le reste c'est du numérique entier
+		return TypeEnum.INTEGER;
+	}
+	
+	/**
+	 * calcule la taille d'un champ cobol
+	 * @param sizeText taille du champ en cobol
+	 * @return taille du champ en nombre de caractères
+	 */
+	private int computeSize(String sizeText, TypeEnum type) {
+		
+		switch(type) {
+		case ALPHANUM: // cas des variables alphanumériques
+			// si on a une version simplifiée 
+			if(sizeText.startsWith("X("))
+				return Integer.parseInt(sizeText.substring(2, sizeText.indexOf(')')));
+			
+			// version détaillée
+			return 1; // TODO
+			
+		case INTEGER:
+			// si on a une version simplifiée 
+			if(sizeText.startsWith("9("))
+				return Integer.parseInt(sizeText.substring(2, sizeText.indexOf(')')));
+			
+			// version détaillée
+			return 1; // TODO
+			
+		case FLOAT:
+			return 1;// TODO
+		}
+		
+		return 0;
+	}
+	
+	/**
 	 * Lis la copy et le fichier de données pour déterminer les valeurs du fichier de données
 	 */
 	public void parseData(){
-
+		
 		// interpretation de la copy
 		ArrayList<DataInfo> copyInfo = parseCopy();
 		
-		// interpretation des données
-		// TODO
+		// initialisation de la première ligne
+		ArrayList<ArrayList<String>> donneesInterpretees = new ArrayList<ArrayList<String>>(); // création du tableau
+		donneesInterpretees.add(new ArrayList<String>()); // création de la ligne d'entête
+		for(DataInfo ci : copyInfo) {
+			donneesInterpretees.get(0).add(ci.getName());
+		}
+		
+		try {
+			// Ouverture du fichier de données
+			BufferedReader dataReader;
+			dataReader = new BufferedReader(new InputStreamReader(new FileInputStream(dataFile)));
+
+			// Boucle sur chaque ligne
+			String dataLine;
+			int numLigne = 0;
+			dataLine = dataReader.readLine();
+			while (dataLine != null) {
+				// incrémentation du nombre de lignes
+				numLigne++;
+
+				// ajout d'une ligne dans les données interpretées
+				donneesInterpretees.add(new ArrayList<String>());
+				
+				// on parcours les données de la copy et on les interprete
+				for(DataInfo ci : copyInfo) {
+					donneesInterpretees.get(numLigne).add(dataLine.substring(ci.getPosition() - 1, ci.getSize() + ci.getPosition() - 1));
+				}
+				
+				// lecture de la prochaine ligne
+				dataLine = dataReader.readLine();
+			}
+			
+			// fermeture du fichier
+			dataReader.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		
 		// envoi des données au panneau de données pour affichage
-		// TODO
+		dataPanel.setStructuredData(donneesInterpretees);
 	}
 }

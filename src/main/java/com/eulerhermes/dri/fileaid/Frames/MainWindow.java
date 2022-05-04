@@ -1,14 +1,21 @@
 package com.eulerhermes.dri.fileaid.Frames;
 
+
+import javax.swing.BoxLayout;
+import javax.swing.JFrame;
+
 import com.eulerhermes.dri.fileaid.DataParsing.DataParsing;
 import com.eulerhermes.dri.fileaid.Panels.FileSelectPanel;
 import com.eulerhermes.dri.fileaid.Panels.StructuredDataPanel;
 
-import javax.swing.*;
-
 public class MainWindow extends JFrame {
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = 6690895950952514376L;
+
+	/**
      * @author BGIRON
      * Public Constructor
      */
@@ -36,6 +43,7 @@ public class MainWindow extends JFrame {
         
         // Branchement du contrôleur
         filesSelectionPanel.setDataParser(dataParser);
+        dataParser.setDataPanel(dataPanel);
         
         // Affichage de la fenêtre
         this.setVisible(true);
