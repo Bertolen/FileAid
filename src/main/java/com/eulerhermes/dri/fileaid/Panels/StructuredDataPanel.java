@@ -54,6 +54,7 @@ public class StructuredDataPanel extends JPanel {
 		panneauDeroulant.add(table);
 
 		// Redimentionne le tableau pour le rendre visible
+		resizeTable(table);
 	}
 
 	public void resizeTable(JTable table) {
