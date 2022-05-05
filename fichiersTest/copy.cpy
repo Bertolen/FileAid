@@ -7,3 +7,4 @@
          05 donnee-numerique PIC 9(2).
            88 deux VALUE 2.
            88 deouze VALUE 12.
+         05 grosse-donnee PIC X(10).

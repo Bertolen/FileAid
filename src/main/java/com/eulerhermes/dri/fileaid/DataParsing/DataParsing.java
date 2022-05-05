@@ -292,7 +292,16 @@ public class DataParsing {
 				
 				// on parcours les données de la copy et on les interprete
 				for(DataInfo ci : copyInfo) {
-					donneesInterpretees.get(numLigne).add(dataLine.substring(ci.getPosition() - 1, ci.getSize() + ci.getPosition() - 1));
+					int debDonnee = ci.getPosition() - 1;
+					int finDonnee = ci.getSize() + ci.getPosition() - 1;
+
+					// si la copy décrit plus de colonnes que ce que le fichier contien
+					if(debDonnee > dataLine.length()){
+						donneesInterpretees.get(numLigne).add(""); // on n'ajoute rien
+					} else { // sinon, on ajoute ce qu'on a
+						finDonnee = Math.min(finDonnee, dataLine.length());
+						donneesInterpretees.get(numLigne).add(dataLine.substring(debDonnee, finDonnee));
+					}
 				}
 				
 				// lecture de la prochaine ligne
