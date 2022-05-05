@@ -7,10 +7,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.eulerhermes.dri.fileaid.Panels.StructuredDataPanel;
 import com.eulerhermes.dri.fileaid.model.DataInfo;
+import com.eulerhermes.dri.fileaid.model.Redefine;
 import com.eulerhermes.dri.fileaid.model.TypeEnum;
 
 public class DataParsing {
@@ -74,18 +76,62 @@ public class DataParsing {
 			// position initiale
 			int position = 1;
 
+			// Liste des Redefines
+			ArrayList<Redefine> redefines = new ArrayList<>();
+
 			// Boucle sur chaque instruction
 			String instruction = getNextInstruction(copyReader);
 			while (instruction != null){
+				// passage de l'instruction entière en majuscules
+				instruction = instruction.toUpperCase();
 
 				// Découpe de la ligne en mots séparés par des espaces
-				String[] words = instruction.split(" ");
+				ArrayList<String> words = new ArrayList<>(List.of(instruction.split(" ")));
 
 				// vérifie si on est dans une variable groupée ou pas
-				boolean estVariableGroupe = words.length < 3 || !words[2].equals("PIC");
+				boolean estVariableGroupe = !words.contains("PIC");
 
 				// vérifie si l'instruction est un niveau 88
-				boolean estNiveau88 = words[0].equals("88");
+				boolean estNiveau88 = words.get(0).equals("88");
+
+				// Gestion des redefine
+
+				// fin des redefine
+				while(!redefines.isEmpty() && Integer.parseInt(words.get(0)) <= redefines.get(redefines.size() - 1).getNiveau() ){
+					Redefine r = redefines.get(redefines.size() - 1);
+					position = Math.max(position, r.getPosition() + r.getTaille());
+					redefines.remove(r);
+					System.out.println("Fin de redefine, nouvelle position : " + position);
+				}
+
+				// ajout d'un nouveau redefine
+				if(words.size() >= 3 && words.get(2).equalsIgnoreCase("REDEFINES")) {
+
+					// on recherche la donnée redéfinie par ce redefine
+					DataInfo donneeRedefinie = null;
+					for (DataInfo d : copyInfo){
+						if(d.getName().equals(words.get(3))) donneeRedefinie = d;
+					}
+
+					// contrôle qu'on a bien trouvé la donnée à redéfinir
+					if (donneeRedefinie == null) {
+						System.out.println("ERREUR : On veut redéfinir une donnée qu'on n'a pas dans la liste : " + words.get(3));
+						return null;
+					}
+
+					// alimentation du redefine
+					Redefine redefine = new Redefine();
+					redefine.setNiveau(Integer.parseInt(words.get(0)));
+					redefine.setPosition(donneeRedefinie.getPosition());
+					redefine.setTaille(position - donneeRedefinie.getPosition());
+
+					// ajout du redefine à la liste des redefine
+					redefines.add(redefine);
+
+					// repositionnement de la lecture au niveau du redefine
+					position = redefine.getPosition();
+					System.out.println("Nouveau redefine, nouvelle position : " + position);
+				}
 
 				// si on n'est pas dans une variable groupée et qu'on n'est pas dans un niveau 88
 				// alors on ajoute son nom, sa taille et sa position
@@ -93,9 +139,9 @@ public class DataParsing {
 
 					// alimentation du nouveau DataInfo
 					DataInfo lineInfo = new DataInfo();
-					lineInfo.setName(words[1]); // ATENTION : pour l'instant on considère que le nom est toujours la deuxième valeur
-					lineInfo.setType(typeOf(words[3]));// ATENTION : pour l'instant on considère que la taille est toujours la quatrième valeur
-					lineInfo.setSize(computeSize(words[3], lineInfo.getType()));
+					lineInfo.setName(words.get(1)); // ATENTION : pour l'instant on considère que le nom est toujours la deuxième valeur
+					lineInfo.setType(typeOf(words.get(3)));// ATENTION : pour l'instant on considère que la taille est toujours la quatrième valeur
+					lineInfo.setSize(computeSize(words.get(3), lineInfo.getType()));
 					lineInfo.setPosition(position);
 					copyInfo.add(lineInfo);
 
