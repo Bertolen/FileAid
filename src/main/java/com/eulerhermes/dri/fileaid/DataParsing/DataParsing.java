@@ -21,7 +21,7 @@ public class DataParsing {
 	
 	/**
 	 * Indique le panneau de données pour afficher le résultat
-	 * @param dataPanel
+	 * @param dataPanel panneau de données qui va afficher le résultat
 	 */
 	public void setDataPanel(StructuredDataPanel dataPanel) {
 		this.dataPanel = dataPanel;
@@ -52,10 +52,9 @@ public class DataParsing {
 	
 	/**
 	 * parcours la copy pour en déduire la position de chaque donnée
-	 * !!! ATTENTION !!!! Pour l'instant on considère uniquement les données définies sur une seule ligne et on ne traite pas les redefine
-	 * @return liste de DataInfo où chaque element correspond à une donnée de la copy
+	 * !!! ATTENTION !!!! Pour l'instant on on ne traite pas les redefine
+	 * @return liste de DataInfo où chaque element correspond à une donnée de la copy, renvoie null en cas d'erreur de lecture
 	 */
-	
 	private List<DataInfo> parseCopy() {
 		
 		// Ouverture de la copy
@@ -68,50 +67,46 @@ public class DataParsing {
 		}
 		
 		// initialisation du tableau de retour
-		List<DataInfo> copyInfo = new ArrayList<DataInfo>();
+		List<DataInfo> copyInfo = new ArrayList<>();
 		
 		try {
 
 			// position initiale
 			int position = 1;
-			
-			// Boucle sur chaque ligne
-			String copyLine;
-			copyLine = copyReader.readLine();
-			while (copyLine != null) {
-				
-				// si le 7ème caractère est un asterix alors on ignore la ligne, c'est un commentaire
-				if(copyLine.charAt(6) != '*') {
-				
-					// on retire les 7 premiers caractères et les espaces en trop devant et après les infos utiles
-					copyLine = copyLine.substring(7).trim();
-					
-					// vérifie si on est dans une variable groupée ou pas
-					boolean variableGroupe = !copyLine.toUpperCase().contains("PIC");
-				
-					// si on n'est pas dans une variable groupée on ajoute son nom, sa taille et sa position
-					if(!variableGroupe) {
-						
-						// Découpe de la ligne en mots séparés par des espaces
-						String[] words = copyLine.split(" ");
-						
-						// alimentation du nouveau DataInfo
-						DataInfo lineInfo = new DataInfo();
-						lineInfo.setName(words[1]); // ATENTION : pour l'instant on considère que le nom est toujours la deuxième valeur
-						lineInfo.setType(typeOf(words[3]));
-						lineInfo.setSize(computeSize(words[3], lineInfo.getType()));
-						lineInfo.setPosition(position);
-						copyInfo.add(lineInfo);
-						
-						// incrémentation de la position
-						position += lineInfo.getSize();
-					}
+
+			// Boucle sur chaque instruction
+			String instruction = getNextInstruction(copyReader);
+			while (instruction != null){
+
+				// Découpe de la ligne en mots séparés par des espaces
+				String[] words = instruction.split(" ");
+
+				// vérifie si on est dans une variable groupée ou pas
+				boolean estVariableGroupe = words.length < 3 || !words[2].equals("PIC");
+
+				// vérifie si l'instruction est un niveau 88
+				boolean estNiveau88 = words[0].equals("88");
+
+				// si on n'est pas dans une variable groupée et qu'on n'est pas dans un niveau 88
+				// alors on ajoute son nom, sa taille et sa position
+				if(!estVariableGroupe && !estNiveau88) {
+
+					// alimentation du nouveau DataInfo
+					DataInfo lineInfo = new DataInfo();
+					lineInfo.setName(words[1]); // ATENTION : pour l'instant on considère que le nom est toujours la deuxième valeur
+					lineInfo.setType(typeOf(words[3]));// ATENTION : pour l'instant on considère que la taille est toujours la quatrième valeur
+					lineInfo.setSize(computeSize(words[3], lineInfo.getType()));
+					lineInfo.setPosition(position);
+					copyInfo.add(lineInfo);
+
+					// incrémentation de la position
+					position += lineInfo.getSize();
 				}
-				
-				// prochaine lecture
-				copyLine = copyReader.readLine();
+
+				// lecture de la prochaine instruction
+				instruction = getNextInstruction(copyReader);
 			}
-			
+
 			// ferme le fichier
 			copyReader.close();
 			
@@ -123,7 +118,94 @@ public class DataParsing {
 		// renvoi le résultat
 		return copyInfo;
 	}
-	
+
+	/**
+	 * Récupère la prochaine instruction cobol d'un fichier cobol
+	 * @param reader lecteur du fichier cobol
+	 * @return la prochaine instruction cobol
+	 * @throws IOException en cas d'erreur de lecture
+	 */
+	private String getNextInstruction(BufferedReader reader) throws IOException {
+		// initialisation de l'instruction
+		StringBuilder instruction = new StringBuilder();
+
+		// Lecture de la prochaine ligne cobol
+		String cobolLine = getNextCobolLine(reader);
+
+		// booléen
+		boolean estDansChaineDeCaractere = false;
+
+		// boucle sur les lignes cobol tant que l'instruction n'est pas terminée et qu'on a encore des lignes à lire
+		while (!cobolLine.equals("")) {
+
+			//boucle sur chaque caractère de la ligne cobol pour chercher le point de fin d'instruction
+			for (char c : cobolLine.toCharArray()){
+
+				// tout d'abord on vérifie si on est dans une chaine de caractères
+				if(c == '\'') {
+					estDansChaineDeCaractere = !estDansChaineDeCaractere;
+				}
+
+				// si le caractère lu est un point alors on termine l'instruction ici
+				if(!estDansChaineDeCaractere && c == '.') {
+					return instruction.toString();
+				} else {
+					// sinon, ajoute le caractère lu à l'instruction
+					instruction.append(c);
+				}
+			}
+
+			// si on est ici c'est qu'on a terminé de lire la ligne cobol et que l'instruction n'est pas terminée
+			// Alors on lis la prochaine instruction
+			cobolLine = getNextCobolLine(reader);
+			// et on ajoute un espace pour représenter l'aller à la ligne
+			instruction.append(' ');
+		}
+
+		// si on arrive ici c'est qu'on a terminé le fichier et qu'on n'a pas terminé l'instruction.
+
+		// La copy est mal foutue si l'instruction est en cours
+		if(instruction.length() > 0){
+			// TODO : renvoyer une erreur
+			System.out.println("ERREUR : on a une instruction mal foutue : " + instruction);
+			return null;
+		}
+
+		// si l'instruction est vide tout va bien, la dernière instruction envoyée était la dernière de la copy
+		return null;
+	}
+
+	/**
+	 * Lis un fichier cobol en entrée
+	 * @param reader lecteur du fichier cobol en entrée
+	 * @return prochaine ligne d'instructions utiles
+	 * @throws IOException en cas de lecture
+	 */
+	private String getNextCobolLine(BufferedReader reader) throws IOException {
+
+		// initialisation de la ligne
+		String ligneCobol = "";
+
+		// Lecture de la prochaine ligne
+		String copyLine = reader.readLine();
+
+		// condition d'arrêt : Si la ligne lue est vide, alors on renvoie l'instruction en cours
+		if (copyLine == null) return ligneCobol;
+
+		// on ignore les lignes de commentaire
+		while (copyLine.charAt(6) == '*') {
+			copyLine = reader.readLine();
+
+			// condition d'arrêt : Si la ligne lue est vide, alors on renvoie l'instruction en cours
+			if (copyLine == null) return ligneCobol;
+		}
+
+		// on conserve uniquement les informations utiles et on retire les espaces en trop
+		ligneCobol = copyLine.substring(7,Math.min(copyLine.length(),72)).trim();
+
+		return ligneCobol;
+	}
+
 	/**
 	 * Determine le type d'une donnée à partir de sa déclaration
 	 * @param sizeText déclaration du type de donnée en cobol
@@ -178,10 +260,16 @@ public class DataParsing {
 		
 		// interpretation de la copy
 		List<DataInfo> copyInfo = parseCopy();
+
+		// contrôme des données
+		if(copyInfo == null){
+			// TODO envoyer un message d'erreur
+			return;
+		}
 		
 		// initialisation de la première ligne
-		List<List<String>> donneesInterpretees = new ArrayList<List<String>>(); // création du tableau
-		donneesInterpretees.add(new ArrayList<String>()); // création de la ligne d'entête
+		List<List<String>> donneesInterpretees = new ArrayList<>(); // création du tableau
+		donneesInterpretees.add(new ArrayList<>()); // création de la ligne d'entête
 		for(DataInfo ci : copyInfo) {
 			donneesInterpretees.get(0).add(ci.getName());
 		}
@@ -200,7 +288,7 @@ public class DataParsing {
 				numLigne++;
 
 				// ajout d'une ligne dans les données interpretées
-				donneesInterpretees.add(new ArrayList<String>());
+				donneesInterpretees.add(new ArrayList<>());
 				
 				// on parcours les données de la copy et on les interprete
 				for(DataInfo ci : copyInfo) {
@@ -215,8 +303,10 @@ public class DataParsing {
 			dataReader.close();
 			
 		} catch (FileNotFoundException e) {
+			// TODO envoyer un message d'erreur
 			e.printStackTrace();
 		} catch (IOException e) {
+			// TODO envoyer un message d'erreur
 			e.printStackTrace();
 		}
 		
