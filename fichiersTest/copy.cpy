@@ -15,3 +15,4 @@
          05 deuxieme-groupe REDEFINES zone-redefine.
            10 donnee-un-bis PIC X(05).
            10 donnee-deux-bis PIC X(05).
+         05 zone-simple-occurs PIC X OCCURS 3.

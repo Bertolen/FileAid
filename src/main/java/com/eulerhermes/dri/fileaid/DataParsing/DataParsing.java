@@ -98,20 +98,28 @@ public class DataParsing {
 				position = gestionRedefine(words, position, copyInfo);
 				if(position == -1) return null; // en cas d'erreur on s'arrête là
 
-				// si on n'est pas dans un niveau 88
-				// alors on ajoute son nom, sa taille et sa position
+				// pour les occurences des zones normales
+				int occurs = 1;
+				int indexOCCURS = words.indexOf("OCCURS");
+				if (indexOCCURS >= 0) occurs = Integer.parseInt(words.get(indexOCCURS + 1));
+
+				// on ignore les niveaux 88
 				if(!estNiveau88) {
 
-					// alimentation du nouveau DataInfo
-					DataInfo lineInfo = new DataInfo();
-					lineInfo.setName(words.get(1));
-					lineInfo.setType(estVariableGroupe ? TypeEnum.VOID : typeOf(words.get(3))); // une zone groupe a le type VOID
-					lineInfo.setSize(estVariableGroupe ? 0 : computeSize(words.get(3), lineInfo.getType())); // la taille d'une variable groupe est zéro
-					lineInfo.setPosition(position);
-					copyInfo.add(lineInfo);
+					// on réalise cette action pour chaque occurence de la variable
+					for(int i = 0; i < occurs ; i++) {
 
-					// incrémentation de la position
-					position += lineInfo.getSize();
+						// alimentation du nouveau DataInfo
+						DataInfo lineInfo = new DataInfo();
+						lineInfo.setName(occurs > 1 ? words.get(1) + '(' + (i+1) + ')' :  words.get(1));
+						lineInfo.setType(estVariableGroupe ? TypeEnum.VOID : typeOf(words.get(3))); // une zone groupe a le type VOID
+						lineInfo.setSize(estVariableGroupe ? 0 : computeSize(words.get(3), lineInfo.getType())); // la taille d'une variable groupe est zéro
+						lineInfo.setPosition(position);
+						copyInfo.add(lineInfo);
+
+						// incrémentation de la position
+						position += lineInfo.getSize();
+					}
 				}
 
 				// lecture de la prochaine instruction
