@@ -101,7 +101,6 @@ public class DataParsing {
 					Redefine r = redefines.get(redefines.size() - 1);
 					position = Math.max(position, r.getPosition() + r.getTaille());
 					redefines.remove(r);
-					System.out.println("Fin de redefine, nouvelle position : " + position);
 				}
 
 				// ajout d'un nouveau redefine
@@ -130,7 +129,6 @@ public class DataParsing {
 
 					// repositionnement de la lecture au niveau du redefine
 					position = redefine.getPosition();
-					System.out.println("Nouveau redefine, nouvelle position : " + position);
 				}
 
 				// si on n'est pas dans une variable groupée et qu'on n'est pas dans un niveau 88
@@ -282,7 +280,7 @@ public class DataParsing {
 				return Integer.parseInt(sizeText.substring(2, sizeText.indexOf(')')));
 			
 			// version détaillée
-			return 1; // TODO
+			return charsInString('X', sizeText);
 			
 		case INTEGER:
 			// si on a une version simplifiée 
@@ -290,15 +288,48 @@ public class DataParsing {
 				return Integer.parseInt(sizeText.substring(2, sizeText.indexOf(')')));
 			
 			// version détaillée
-			return 1; // TODO
+			return charsInString('9', sizeText);
 			
 		case FLOAT:
-			return 1;// TODO
+			// découpe de la description de taille en deux
+			String[] parts = sizeText.split("V");
+
+			// contrôle qu'on a bien deux parties
+			if(parts.length != 2) return 0; // TODO : envoyer un message d'erreur
+
+			// initialisation de la somme
+			int size = 0;
+
+			// boucle sur chacune des deux parties
+			for(String p : parts) {
+				if(p.charAt(1) == '(') { // cas de la définition par parenthèse
+					size += Integer.parseInt(p.substring(2, p.indexOf(')')));
+				} else { // cas de la définition par détail
+					size += charsInString('9', p);
+				}
+			}
+
+			// renvoie la somme des deux parties
+			return size;
 		}
 		
 		return 0;
 	}
-	
+
+	/**
+	 * Compte le nombre d'occurences d'un caractère donné dans une chaîne de caractères
+	 * @param c caractères à chercher
+	 * @param string chaîne de caractères dans laquelle chercher
+	 * @return nombre de fois où on a trouvé c dans s
+	 */
+	int charsInString(char c, String string) {
+		int cpt = 0;
+		for (char stringChar : string.toCharArray()) {
+			if (c == stringChar) cpt ++;
+		}
+		return cpt;
+	}
+
 	/**
 	 * Lis la copy et le fichier de données pour déterminer les valeurs du fichier de données
 	 */

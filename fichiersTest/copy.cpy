@@ -10,7 +10,7 @@
          05 grosse-donnee PIC X(10).
          05 premier-groupe REDEFINES grosse-donnee.
            10 donnee-un PIC X(04).
-           10 donnee-deux PIC X(16).
+           10 donnee-deux PIC 99V99.
          05 deuxieme-groupe REDEFINES grosse-donnee.
            10 donnee-un-bis PIC X(05).
            10 donnee-deux-bis PIC X(05).
