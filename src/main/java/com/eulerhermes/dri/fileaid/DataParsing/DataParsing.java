@@ -20,6 +20,7 @@ public class DataParsing {
 	private StructuredDataPanel dataPanel = null;
 	private File copyFile = null;
 	private File dataFile = null;
+	private List<Redefine> redefines = null;
 	
 	/**
 	 * Indique le panneau de données pour afficher le résultat
@@ -54,7 +55,6 @@ public class DataParsing {
 	
 	/**
 	 * parcours la copy pour en déduire la position de chaque donnée
-	 * !!! ATTENTION !!!! Pour l'instant on on ne traite pas les redefine
 	 * @return liste de DataInfo où chaque element correspond à une donnée de la copy, renvoie null en cas d'erreur de lecture
 	 */
 	private List<DataInfo> parseCopy() {
@@ -77,7 +77,7 @@ public class DataParsing {
 			int position = 1;
 
 			// Liste des Redefines
-			ArrayList<Redefine> redefines = new ArrayList<>();
+			redefines = new ArrayList<>();
 
 			// Boucle sur chaque instruction
 			String instruction = getNextInstruction(copyReader);
@@ -95,51 +95,18 @@ public class DataParsing {
 				boolean estNiveau88 = words.get(0).equals("88");
 
 				// Gestion des redefine
+				position = gestionRedefine(words, position, copyInfo);
+				if(position == -1) return null; // en cas d'erreur on s'arrête là
 
-				// fin des redefine
-				while(!redefines.isEmpty() && Integer.parseInt(words.get(0)) <= redefines.get(redefines.size() - 1).getNiveau() ){
-					Redefine r = redefines.get(redefines.size() - 1);
-					position = Math.max(position, r.getPosition() + r.getTaille());
-					redefines.remove(r);
-				}
-
-				// ajout d'un nouveau redefine
-				if(words.size() >= 3 && words.get(2).equalsIgnoreCase("REDEFINES")) {
-
-					// on recherche la donnée redéfinie par ce redefine
-					DataInfo donneeRedefinie = null;
-					for (DataInfo d : copyInfo){
-						if(d.getName().equals(words.get(3))) donneeRedefinie = d;
-					}
-
-					// contrôle qu'on a bien trouvé la donnée à redéfinir
-					if (donneeRedefinie == null) {
-						System.out.println("ERREUR : On veut redéfinir une donnée qu'on n'a pas dans la liste : " + words.get(3));
-						return null;
-					}
-
-					// alimentation du redefine
-					Redefine redefine = new Redefine();
-					redefine.setNiveau(Integer.parseInt(words.get(0)));
-					redefine.setPosition(donneeRedefinie.getPosition());
-					redefine.setTaille(position - donneeRedefinie.getPosition());
-
-					// ajout du redefine à la liste des redefine
-					redefines.add(redefine);
-
-					// repositionnement de la lecture au niveau du redefine
-					position = redefine.getPosition();
-				}
-
-				// si on n'est pas dans une variable groupée et qu'on n'est pas dans un niveau 88
+				// si on n'est pas dans un niveau 88
 				// alors on ajoute son nom, sa taille et sa position
-				if(!estVariableGroupe && !estNiveau88) {
+				if(!estNiveau88) {
 
 					// alimentation du nouveau DataInfo
 					DataInfo lineInfo = new DataInfo();
-					lineInfo.setName(words.get(1)); // ATENTION : pour l'instant on considère que le nom est toujours la deuxième valeur
-					lineInfo.setType(typeOf(words.get(3)));// ATENTION : pour l'instant on considère que la taille est toujours la quatrième valeur
-					lineInfo.setSize(computeSize(words.get(3), lineInfo.getType()));
+					lineInfo.setName(words.get(1));
+					lineInfo.setType(estVariableGroupe ? TypeEnum.VOID : typeOf(words.get(3))); // une zone groupe a le type VOID
+					lineInfo.setSize(estVariableGroupe ? 0 : computeSize(words.get(3), lineInfo.getType())); // la taille d'une variable groupe est zéro
 					lineInfo.setPosition(position);
 					copyInfo.add(lineInfo);
 
@@ -161,6 +128,53 @@ public class DataParsing {
 		
 		// renvoi le résultat
 		return copyInfo;
+	}
+
+	/**
+	 * Gère le changement de la position de lecture en fonction des redefine de la copy
+	 * @param words Liste des mots qui constituent l'instruction
+	 * @param position position de lecture
+	 * @param copyInfo liste des informations de la copy acquises jusqu'à maintenant
+	 * @return nouvelle position de lecture
+	 */
+	int gestionRedefine(List<String> words, int position, List<DataInfo> copyInfo) {
+
+		// fin des redefine
+		while(!redefines.isEmpty() && Integer.parseInt(words.get(0)) <= redefines.get(redefines.size() - 1).getNiveau() ){
+			Redefine r = redefines.get(redefines.size() - 1);
+			position = Math.max(position, r.getPosition() + r.getTaille());
+			redefines.remove(r);
+		}
+
+		// ajout d'un nouveau redefine
+		if(words.size() >= 3 && words.get(2).equalsIgnoreCase("REDEFINES")) {
+
+			// on recherche la donnée redéfinie par ce redefine
+			DataInfo donneeRedefinie = null;
+			for (DataInfo d : copyInfo){
+				if(d.getName().equals(words.get(3))) donneeRedefinie = d;
+			}
+
+			// contrôle qu'on a bien trouvé la donnée à redéfinir
+			if (donneeRedefinie == null) {
+				System.out.println("ERREUR : On veut redéfinir une donnée qu'on n'a pas dans la liste : " + words.get(3));
+				return -1;
+			}
+
+			// alimentation du redefine
+			Redefine redefine = new Redefine();
+			redefine.setNiveau(Integer.parseInt(words.get(0)));
+			redefine.setPosition(donneeRedefinie.getPosition());
+			redefine.setTaille(position - donneeRedefinie.getPosition());
+
+			// ajout du redefine à la liste des redefine
+			redefines.add(redefine);
+
+			// repositionnement de la lecture au niveau du redefine
+			position = redefine.getPosition();
+		}
+
+		return position;
 	}
 
 	/**
@@ -272,7 +286,7 @@ public class DataParsing {
 	 * @return taille du champ en nombre de caractères
 	 */
 	private int computeSize(String sizeText, TypeEnum type) {
-		
+
 		switch(type) {
 		case ALPHANUM: // cas des variables alphanumériques
 			// si on a une version simplifiée 
@@ -348,7 +362,7 @@ public class DataParsing {
 		List<List<String>> donneesInterpretees = new ArrayList<>(); // création du tableau
 		donneesInterpretees.add(new ArrayList<>()); // création de la ligne d'entête
 		for(DataInfo ci : copyInfo) {
-			donneesInterpretees.get(0).add(ci.getName());
+			if(ci.getSize() > 0) donneesInterpretees.get(0).add(ci.getName()); // les données de taille nulle on les ignore
 		}
 		
 		try {
@@ -369,11 +383,14 @@ public class DataParsing {
 				
 				// on parcours les données de la copy et on les interprete
 				for(DataInfo ci : copyInfo) {
+
+					if(ci.getSize() == 0) continue; // on ignore les données de taille nulle
+
+					// calcul des lieux de découpe du string
 					int debDonnee = ci.getPosition() - 1;
 					int finDonnee = ci.getSize() + ci.getPosition() - 1;
 
-					// si la copy décrit plus de colonnes que ce que le fichier contien
-					if(debDonnee > dataLine.length()){
+					if(debDonnee > dataLine.length()){// si la copy décrit plus de colonnes que ce que le fichier contient
 						donneesInterpretees.get(numLigne).add(""); // on n'ajoute rien
 					} else { // sinon, on ajoute ce qu'on a
 						finDonnee = Math.min(finDonnee, dataLine.length());

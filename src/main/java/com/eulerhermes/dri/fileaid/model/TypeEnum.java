@@ -3,5 +3,6 @@ package com.eulerhermes.dri.fileaid.model;
 public enum TypeEnum {
 	ALPHANUM,
 	INTEGER,
-	FLOAT
+	FLOAT,
+	VOID // pour les zones groupe
 }
