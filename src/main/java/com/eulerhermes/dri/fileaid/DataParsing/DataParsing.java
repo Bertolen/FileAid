@@ -92,6 +92,7 @@ public class DataParsing {
 
 				// Découpe de la ligne en mots séparés par des espaces
 				ArrayList<String> words = new ArrayList<>(List.of(instruction.split(" ")));
+				while(words.remove("")) {continue;} // on retire tous les string vides
 
 				// vérifie si on est dans une variable groupée ou pas
 				boolean estVariableGroupe = !words.contains("PIC");
@@ -350,7 +351,7 @@ public class DataParsing {
 		if (copyLine == null) return ligneCobol;
 
 		// on ignore les lignes de commentaire
-		while (copyLine.charAt(6) == '*') {
+		while (copyLine.length() > 6 && copyLine.charAt(6) == '*') {
 			copyLine = reader.readLine();
 
 			// condition d'arrêt : Si la ligne lue est vide, alors on renvoie l'instruction en cours
@@ -415,7 +416,7 @@ public class DataParsing {
 
 			// boucle sur chacune des deux parties
 			for(String p : parts) {
-				if(p.charAt(1) == '(') { // cas de la définition par parenthèse
+				if( p.length() > 1 && p.charAt(1) == '(') { // cas de la définition par parenthèse
 					size += Integer.parseInt(p.substring(2, p.indexOf(')')));
 				} else { // cas de la définition par détail
 					size += charsInString('9', p);
