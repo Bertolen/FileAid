@@ -12,6 +12,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
+// TODO faire que ce panneau déroulant déroule vraiment
+
 public class StructuredDataPanel extends JPanel {
 
 	/**

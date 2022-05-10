@@ -12,6 +12,7 @@ import java.util.List;
 
 import com.eulerhermes.dri.fileaid.Panels.StructuredDataPanel;
 import com.eulerhermes.dri.fileaid.model.DataInfo;
+import com.eulerhermes.dri.fileaid.model.Occurs;
 import com.eulerhermes.dri.fileaid.model.Redefine;
 import com.eulerhermes.dri.fileaid.model.TypeEnum;
 
@@ -21,6 +22,7 @@ public class DataParsing {
 	private File copyFile = null;
 	private File dataFile = null;
 	private List<Redefine> redefines = null;
+	private List<Occurs> occurs = null;
 	
 	/**
 	 * Indique le panneau de données pour afficher le résultat
@@ -79,6 +81,9 @@ public class DataParsing {
 			// Liste des Redefines
 			redefines = new ArrayList<>();
 
+			// Liste des Occurs
+			occurs = new ArrayList<>();
+
 			// Boucle sur chaque instruction
 			String instruction = getNextInstruction(copyReader);
 			while (instruction != null){
@@ -99,19 +104,23 @@ public class DataParsing {
 				if(position == -1) return null; // en cas d'erreur on s'arrête là
 
 				// pour les occurences des zones normales
-				int occurs = 1;
+				int nbOccurs = 1;
 				int indexOCCURS = words.indexOf("OCCURS");
-				if (indexOCCURS >= 0) occurs = Integer.parseInt(words.get(indexOCCURS + 1));
+				if (indexOCCURS >= 0) nbOccurs = Integer.parseInt(words.get(indexOCCURS + 1));
+
+				// Gestion des nbOccurs des zones groupes
+				position = gestionOccurs(words, position, copyInfo, estVariableGroupe);
+				if(position == -1) return null; // en cas d'erreur on s'arrête là
 
 				// on ignore les niveaux 88
 				if(!estNiveau88) {
 
 					// on réalise cette action pour chaque occurence de la variable
-					for(int i = 0; i < occurs ; i++) {
+					for(int i = 0; i < nbOccurs ; i++) {
 
 						// alimentation du nouveau DataInfo
 						DataInfo lineInfo = new DataInfo();
-						lineInfo.setName(occurs > 1 ? words.get(1) + '(' + (i+1) + ')' :  words.get(1));
+						lineInfo.setName(nbOccurs > 1 ? words.get(1) + '(' + (i+1) + ')' :  words.get(1));
 						lineInfo.setType(estVariableGroupe ? TypeEnum.VOID : typeOf(words.get(3))); // une zone groupe a le type VOID
 						lineInfo.setSize(estVariableGroupe ? 0 : computeSize(words.get(3), lineInfo.getType())); // la taille d'une variable groupe est zéro
 						lineInfo.setPosition(position);
@@ -125,6 +134,12 @@ public class DataParsing {
 				// lecture de la prochaine instruction
 				instruction = getNextInstruction(copyReader);
 			}
+
+			// Gestion des occurs des zones groupes en fin de copy
+			List<String> words = new ArrayList<>();
+			words.add("01");
+			position = gestionOccurs(words, position, copyInfo, false);
+			if(position == -1) return null; // en cas d'erreur on s'arrête là
 
 			// ferme le fichier
 			copyReader.close();
@@ -183,6 +198,82 @@ public class DataParsing {
 		}
 
 		return position;
+	}
+
+	/**
+	 * Gère le changement de la position de lecture en fonction des occurs de la copy
+	 * @param words Liste des mots qui constituent l'instruction
+	 * @param position position de lecture
+	 * @param copyInfo liste des informations de la copy acquises jusqu'à maintenant
+	 * @param estVariableGroupe indique si la variable en cours de traitement est une zone groupe
+	 * @return nouvelle position de lecture
+	 */
+	int gestionOccurs(List<String> words, int position, List<DataInfo> copyInfo, boolean estVariableGroupe) {
+
+		// fin des redefine
+		while(!occurs.isEmpty() && Integer.parseInt(words.get(0)) <= occurs.get(occurs.size() - 1).getNiveau() ){
+			Occurs o = occurs.get(occurs.size() - 1); // récupération du dernier occurs
+			int copyInfoSize = copyInfo.size(); // récupération de la taille de la liste des infos de la copy
+
+			// boucle pour ajouter des données
+			for(int i = 1 ; i < o.getNombre() ; i++) { // boucle sur le nombre d'occurence
+				for(int j = o.getIndex() ; j < copyInfoSize ; j++){ // boucle sur les derniers elements ajoutés (depuis l'index de début)
+					// création d'une nouvelle donnée
+					DataInfo d = new DataInfo();
+					d.setName(ajouteParentheses(copyInfo.get(j).getName(), i+1)); // nom de la nouvelle donnée avec son index
+					d.setType(copyInfo.get(j).getType()); // même type que la donnée répétée
+					d.setSize(copyInfo.get(j).getSize()); // même taille que la donnée répétée
+					d.setPosition(position); // nouvelle position par contre
+					copyInfo.add(d);
+
+					// incrémentation de la position
+					position += d.getSize();
+				}
+			}
+
+			// boucle pour modifier les noms des données originelles
+			for(int j = o.getIndex() ; j < copyInfoSize ; j++){ // boucle sur les derniers elements ajoutés (depuis l'index de début)
+				copyInfo.get(j).setName(ajouteParentheses(copyInfo.get(j).getName(), 1));
+			}
+
+			occurs.remove(o); // suppresion du dernier occurs
+		}
+
+		// récupération du l'emplacement du mot occurs dans l'instruction
+		int index = words.indexOf("OCCURS");
+
+		// ajout d'un nouveau occurs (que pour les zones groupe, les zones simples on les fait en dehors de cette fonction)
+		if(estVariableGroupe && index >= 0) {
+
+			// alimentation du redefine
+			Occurs o = new Occurs();
+			o.setNombre(Integer.parseInt(words.get(index + 1)));
+			o.setNiveau(Integer.parseInt(words.get(0)));
+			o.setIndex(copyInfo.size());
+
+			// ajout du redefine à la liste des redefine
+			occurs.add(o);
+		}
+
+		return position;
+	}
+
+	/**
+	 * Ajoute des parenthèses qui servent d'indicateur d'index au nom d'une donnée
+	 * @param string nom de la donnée en entrée
+	 * @param valP valeur de la parenthèse à ajouter
+	 * @return nom de la donnée modifié
+	 */
+	private String ajouteParentheses(String string, int valP) {
+		// on vérifie si on a déjà une parenthèse
+		for(int i = 0 ; i < string.length() ; i ++){
+			// si c'est le cas on ajoute celle-ci avant
+			if(string.charAt(i) == '('){
+				return string.substring(0,i) + '(' + valP + ')' + string.substring(i);
+			}
+		}
+		// s'il n'y a pas de parenthèse alors on ajoute celle-ci à la fin
+		return string + '(' + valP + ')';
 	}
 
 	/**

@@ -13,6 +13,6 @@
            10 donnee-un PIC X(04).
            10 donnee-deux PIC 99V99.
          05 deuxieme-groupe REDEFINES zone-redefine.
-           10 donnee-un-bis PIC X(05).
-           10 donnee-deux-bis PIC X(05).
-         05 zone-simple-occurs PIC X OCCURS 3.
+           10 test-occurs-1 PIC X(05) OCCURS 2.
+         05 filler OCCURS 3.
+           10 test-occurs-2 PIC X OCCURS 2.
