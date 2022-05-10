@@ -3,11 +3,7 @@ package com.eulerhermes.dri.fileaid.Panels;
 import java.awt.*;
 import java.util.List;
 
-import javax.swing.BoxLayout;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
+import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
@@ -21,16 +17,10 @@ public class StructuredDataPanel extends JPanel {
 	 */
 	private static final long serialVersionUID = -8073619920286425563L;
 
-	
-	private final JScrollPane panneauDeroulant = new JScrollPane();
-	
+
 	public StructuredDataPanel() {
 		// l'affichage dans ce panneau se fait du haut vers le bas
 		this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-		
-		// ajoute les elements à l'objet
-		this.add(new JLabel("Résultats"));
-		this.add(panneauDeroulant);
 	}
 	
 	/**
@@ -40,23 +30,26 @@ public class StructuredDataPanel extends JPanel {
 	public void setStructuredData(List<List<String>> structuredData) {
 		
 		// nettoyage du panneau deroulant
-		panneauDeroulant.removeAll();
-		panneauDeroulant.validate();
+		this.removeAll();
+		this.validate();
 		
-		// initialisation de la table
+		// initialisation des données de la table
 		DefaultTableModel tableModel = new DefaultTableModel(0, structuredData.get(0).size());
 
-		// alimente la nouvelle table
+		// alimente les données de la table
 		for (List<String> ligne : structuredData) {
 			tableModel.addRow(ligne.toArray());
 		}
 
-		// ajoute la table au panneau
+		// création de la table
 		JTable table = new JTable(tableModel);
-		panneauDeroulant.add(table);
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF); // on lui dit de ne pas redimentionner la table
+		resizeTable(table); // on redimentionne une seule fois à notre sauce et c'est tout.
 
-		// Redimentionne le tableau pour le rendre visible
-		resizeTable(table);
+		// ajoute la table au panneau
+		JScrollPane panneauDeroulant = new JScrollPane(table);
+		this.add(new JLabel("Résultats"));
+		this.add(panneauDeroulant);
 	}
 
 	public void resizeTable(JTable table) {
