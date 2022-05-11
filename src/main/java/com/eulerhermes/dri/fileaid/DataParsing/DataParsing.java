@@ -124,6 +124,7 @@ public class DataParsing {
 						lineInfo.setName(nbOccurs > 1 ? words.get(1) + '(' + (i+1) + ')' :  words.get(1));
 						lineInfo.setType(estVariableGroupe ? TypeEnum.VOID : typeOf(words.get(3))); // une zone groupe a le type VOID
 						lineInfo.setSize(estVariableGroupe ? 0 : computeSize(words.get(3), lineInfo.getType())); // la taille d'une variable groupe est zéro
+						lineInfo.setDecimalNb(lineInfo.getType() == TypeEnum.FLOAT ? computeDecimalNb(words.get(3)) : 0);
 						lineInfo.setPosition(position);
 						copyInfo.add(lineInfo);
 
@@ -431,6 +432,25 @@ public class DataParsing {
 	}
 
 	/**
+	 * Calcule le nombre de décimales dans un nombre à partir de la définition de sa variable
+	 * @param sizeText définition de la taille de la variable
+	 * @return nombre de décimales
+	 */
+	int computeDecimalNb(String sizeText) {
+		// découpe de la description de taille en deux
+		String[] parts = sizeText.split("V");
+
+		// contrôle qu'on a bien deux parties
+		if(parts.length != 2) return 0; // TODO : envoyer un message d'erreur
+
+		if( parts[1].length() > 1 && parts[1].charAt(1) == '(') { // cas de la définition par parenthèse
+			return Integer.parseInt(parts[1].substring(2, parts[1].indexOf(')')));
+		} else { // cas de la définition par détail
+			return charsInString('9', parts[1]);
+		}
+	}
+
+	/**
 	 * Compte le nombre d'occurences d'un caractère donné dans une chaîne de caractères
 	 * @param c caractères à chercher
 	 * @param string chaîne de caractères dans laquelle chercher
@@ -494,7 +514,11 @@ public class DataParsing {
 						donneesInterpretees.get(numLigne).add(""); // on n'ajoute rien
 					} else { // sinon, on ajoute ce qu'on a
 						finDonnee = Math.min(finDonnee, dataLine.length());
-						donneesInterpretees.get(numLigne).add(dataLine.substring(debDonnee, finDonnee));
+						String di = dataLine.substring(debDonnee, finDonnee); // sauvegarde du string lu
+						if(ci.getDecimalNb() > 0) { // gestion des décimales
+							di = di.substring(0, di.length() - ci.getDecimalNb()) + ',' + di.substring(di.length() - ci.getDecimalNb());
+						}
+						donneesInterpretees.get(numLigne).add(di);
 					}
 				}
 				

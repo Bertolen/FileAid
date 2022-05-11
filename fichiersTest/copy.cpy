@@ -11,7 +11,7 @@
            10 grosse-donnee PIC X(10).
          05 premier-groupe REDEFINES zone-redefine.
            10 donnee-un PIC X(04).
-           10 donnee-deux PIC 99V99.
+           10 donnee-deux PIC 9(03)V99.
          05 deuxieme-groupe REDEFINES zone-redefine.
            10 test-occurs-1 PIC X(05) OCCURS 2.
          05 filler OCCURS 3.

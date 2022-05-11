@@ -8,8 +8,7 @@ public class DataInfo {
 	private TypeEnum type;
 	private int position;
 	private int size;
-	private String alphanumValue;
-	private float numValue;
+	private int decimalNb;
 	
 	public String toString() {
 		return "nom : " + name + " | position : " + position +  " | taille : " + size;
