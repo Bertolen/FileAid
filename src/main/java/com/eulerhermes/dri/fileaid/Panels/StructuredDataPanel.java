@@ -2,6 +2,7 @@ package com.eulerhermes.dri.fileaid.Panels;
 
 import java.awt.*;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -34,7 +35,9 @@ public class StructuredDataPanel extends JPanel {
 		this.validate();
 		
 		// initialisation des données de la table
-		DefaultTableModel tableModel = new DefaultTableModel(0, structuredData.get(0).size());
+		DefaultTableModel tableModel = new DefaultTableModel(structuredData.get(0).toArray(), 0);
+
+		structuredData.remove(0); // retrait de la première ligne qui nous a servi de header
 
 		// alimente les données de la table
 		for (List<String> ligne : structuredData) {
@@ -58,6 +61,7 @@ public class StructuredDataPanel extends JPanel {
 		TableColumnModel columnModel = table.getColumnModel();
 		for (int i = 0 ; i < table.getColumnCount() ; i++){ // boucle sur les colonnes
 			int width = 15; // largeur minimale
+			width = Math.max(table.getTableHeader().getColumnModel().getColumn(i).getPreferredWidth() , width);
 			for (int j = 0 ; j < table.getRowCount() ; j++){ // boucle sur les lignes
 				TableCellRenderer renderer = table.getCellRenderer(j,i);
 				Component comp = table.prepareRenderer(renderer,j,i);
