@@ -352,7 +352,7 @@ public class DataParsing {
 		if (copyLine == null) return ligneCobol;
 
 		// on ignore les lignes de commentaire
-		while (copyLine.length() > 6 && copyLine.charAt(6) == '*') {
+		while (copyLine.length() <= 6 || copyLine.charAt(6) == '*') {
 			copyLine = reader.readLine();
 
 			// condition d'arrêt : Si la ligne lue est vide, alors on renvoie l'instruction en cours
